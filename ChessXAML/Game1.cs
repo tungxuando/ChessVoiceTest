@@ -1,6 +1,14 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Velentr.Input.Conditions;
+using Velentr.Input.GamePad;
+using Velentr.Input.Keyboard;
+using Velentr.Input.Mouse;
+using Velentr.Input;
+using Velentr.Input.EventArguments;
+using Velentr.Input.Voice.SystemSpeech;
+using Velentr.Input.Voice;
 
 namespace ChessXAML
 {
@@ -8,7 +16,7 @@ namespace ChessXAML
     {
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
-        private VoiceRecognition voiceRecognition;
+        private InputManager manager;
 
         public Game1()
         {
@@ -28,14 +36,26 @@ namespace ChessXAML
         protected override void LoadContent()
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
-            // TODO: use this.Content to load your game content here
+
+            manager = new InputManager(this);
+            manager.Setup();
+            manager.SetVoiceService(new DefaultVoiceService(manager), typeof(SystemSpeechEngine), true);
+            var condition = new AnyCondition(
+                manager,
+                new KeyboardButtonPressedCondition(manager, Key.Escape),
+                new GamePadButtonPressedCondition(manager, GamePadButton.Back),
+                new MouseButtonPressedCondition(manager, MouseButton.MiddleButton),
+                new VoiceCommandCondition(manager,"exit")
+            );
+            condition.Event += ExitGame;
+            manager.AddInputConditionToTracking(condition);
         }
 
         protected override void Update(GameTime gameTime)
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
-            
+            manager.Update(gameTime);
 
             // TODO: Add your update logic here
 
@@ -47,10 +67,15 @@ namespace ChessXAML
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
             // TODO: Add your drawing code here
-            VoiceRecognition voiceRecognition = new VoiceRecognition();
-            _ = voiceRecognition.run();
+           
 
             base.Draw(gameTime);
         }
+
+        public void ExitGame(object sender, ConditionEventArguments args)
+        {
+            Exit();
+        }
+
     }
 }
